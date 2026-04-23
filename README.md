@@ -1,67 +1,59 @@
 # Student Depression Risk Analysis and Prediction
 
-> Proyek machine learning klasifikasi untuk menganalisis faktor depresi pada mahasiswa dan memprediksi status `depression` melalui aplikasi Streamlit.
+> A classification project to analyze student mental-health risk factors and predict `depression` status using a Streamlit app.
 
 * * *
 
-## Background
+## Project Overview
 
-Kesehatan mental mahasiswa menjadi isu penting karena dipengaruhi kombinasi tekanan akademik, kebiasaan hidup, jam belajar/kerja, serta kondisi finansial.  
-Proyek ini dibuat untuk menjawab kebutuhan analisis data yang terstruktur sekaligus menyediakan prototipe prediksi yang bisa digunakan secara praktis.
+This project focuses on identifying depression-related patterns in student data and building a deployable machine learning model for practical inference.
 
-* * *
-
-## Objectives
-
-### Pertanyaan utama
-
-1. Bagaimana distribusi target `depression` pada dataset?
-2. Fitur numerik apa yang paling membedakan kelompok depresi dan non-depresi?
-3. Bagaimana pola depresi berdasarkan fitur kategorikal?
-4. Model klasifikasi mana yang memberi performa terbaik?
-5. Bagaimana model terbaik digunakan dalam aplikasi inference interaktif?
+Main goals:
+1. Explore how depression is distributed in the dataset.
+2. Train and tune multiple classification models.
+3. Select the best tuned model based on cross-validation performance.
+4. Evaluate the tuned model on a hold-out test set.
+5. Serve EDA and prediction via Streamlit.
 
 * * *
 
 ## Repository Structure
 
 ```text
-|-- README.md                                 <- Dokumentasi utama proyek
-|-- description.md                            <- Deskripsi project untuk kebutuhan milestone
-|-- PIM2_Hernanda_Rifaldi_Depression.ipynb    <- Notebook utama (EDA, preprocessing, modeling, evaluasi)
-|-- PIM2_Hernanda_Rifaldi_inf.ipynb           <- Notebook inference
-|-- student_depression_dataset.csv            <- Dataset mentah
+|-- README.md
+|-- description.md
+|-- PIM2_Hernanda_Rifaldi_Depression.ipynb
+|-- PIM2_Hernanda_Rifaldi_inf.ipynb
+|-- student_depression_dataset.csv
 |-- artifacts/
-|   `-- best_model.joblib                     <- Model terbaik hasil training
+|   `-- best_model.joblib
 `-- deployment/
     |-- requirements.txt
     |-- Dockerfile
     `-- src/
-        |-- streamlit_app.py                  <- Entry point Streamlit
-        |-- eda.py                            <- Halaman EDA
-        |-- prediction.py                     <- Halaman prediksi
-        |-- best_model.joblib                 <- Model untuk deployment
-        `-- student_depression_dataset.csv    <- Dataset untuk EDA app
+        |-- streamlit_app.py
+        |-- eda.py
+        |-- prediction.py
+        |-- best_model.joblib
+        `-- student_depression_dataset.csv
 ```
 
 * * *
 
 ## Dataset
 
-- Sumber: [Kaggle - Student Depression Dataset](https://www.kaggle.com/datasets/adilshamim8/student-depression-dataset)
-- Ukuran file: sekitar 2.9 MB (CSV)
-- Tipe fitur: campuran numerik dan kategorikal
-- Target: `depression` (0 = No Depression, 1 = Depression)
+- Source: [Kaggle - Student Depression Dataset](https://www.kaggle.com/datasets/adilshamim8/student-depression-dataset)
+- Target column: `depression` (0 = No Depression, 1 = Depression)
+- Feature types: mixed numerical and categorical
 
-Contoh fitur numerik:
+Example numerical features:
 - `age`
 - `cgpa`
 - `academic_pressure`
-- `study_satisfaction`
 - `work_study_hours`
 - `financial_stress`
 
-Contoh fitur kategorikal:
+Example categorical features:
 - `gender`
 - `city`
 - `profession`
@@ -73,99 +65,75 @@ Contoh fitur kategorikal:
 
 * * *
 
-## Data Preparation and Method
+## Modeling Pipeline
 
-Pipeline preprocessing menggunakan `ColumnTransformer`:
-- Numerik: `SimpleImputer(strategy="median")` + `StandardScaler`
-- Kategorikal: `SimpleImputer(strategy="most_frequent")` + `OneHotEncoder(handle_unknown="ignore")`
+Preprocessing (`ColumnTransformer`):
+- Numerical: `SimpleImputer(strategy="median")` + `StandardScaler`
+- Categorical: `SimpleImputer(strategy="most_frequent")` + `OneHotEncoder(handle_unknown="ignore")`
 
-Model yang dibandingkan:
-- KNN
+Models tuned:
 - SVM (LinearSVC)
-- Decision Tree
 - Random Forest
 - AdaBoost
+- KNN
 
-Strategi evaluasi:
-- `StratifiedKFold` 5-fold cross-validation
-- Metrics: Accuracy, F1-score, ROC-AUC
-- Hyperparameter tuning: `RandomizedSearchCV` (untuk model terpilih)
+Hyperparameter search:
+- `RandomizedSearchCV`
+- 5-fold `StratifiedKFold`
+- Optimization metric: `F1`
 
 * * *
 
-## Modeling Results
+## Tuned Model Results Only
 
-### Cross-validation (ringkas)
+### Tuning leaderboard (cross-validation, after tuning)
 
-| Model | Accuracy (mean) | F1 (mean) | ROC-AUC (mean) |
-|---|---:|---:|---:|
-| SVM | 0.8478 | 0.8724 | 0.9213 |
-| AdaBoost | 0.8458 | 0.8705 | 0.9203 |
-| RandomForest | 0.8427 | 0.8684 | 0.9139 |
-| KNN | 0.8190 | 0.8499 | 0.8757 |
-| DecisionTree | 0.7752 | 0.8081 | 0.7684 |
+| Model | Best CV F1 | CV Std | Best Parameters |
+|---|---:|---:|---|
+| AdaBoost | 0.8737 | 0.0021 | `learning_rate=0.3012291401980419`, `n_estimators=400` |
+| SVM | 0.8730 | 0.0020 | `C=0.008111941985431923` |
+| KNN | 0.8694 | 0.0016 | `weights='distance'`, `n_neighbors=27` |
+| RandomForest | 0.8684 | 0.0019 | `n_estimators=400`, `min_samples_split=5`, `min_samples_leaf=1`, `max_depth=None` |
 
-### Hasil tuning terbaik
-- Best tuned model: **AdaBoost**
-- Best CV F1: **0.8737**
+Selected final model: **AdaBoost (tuned)**.
 
-### Evaluasi test set (best model: AdaBoost)
-- Accuracy: **0.8464**
-- Class `0` (No Depression): Precision **0.8318**, Recall **0.7890**, F1 **0.8099**
-- Class `1` (Depression): Precision **0.8559**, Recall **0.8871**, F1 **0.8712**
+### Hold-out test metrics (tuned AdaBoost only)
+
+| Metric | Value |
+|---|---:|
+| Accuracy | 0.8464 |
+| ROC-AUC | 0.9203 |
+
+Class-wise metrics:
+
+| Class | Precision | Recall | F1-score | Support |
+|---|---:|---:|---:|---:|
+| 0 (No Depression) | 0.8318 | 0.7890 | 0.8099 | 2313 |
+| 1 (Depression) | 0.8559 | 0.8871 | 0.8712 | 3268 |
+| Macro Avg | 0.8439 | 0.8381 | 0.8405 | 5581 |
+| Weighted Avg | 0.8459 | 0.8464 | 0.8458 | 5581 |
+
+Confusion matrix (tuned AdaBoost):
+
+| Actual \\ Predicted | 0 | 1 |
+|---|---:|---:|
+| 0 | 1825 | 488 |
+| 1 | 369 | 2899 |
 
 * * *
 
 ## Streamlit App
 
-Aplikasi deployment berisi:
-- **EDA page**: ringkasan dataset, distribusi target, distribusi numerik per target, dan heatmap korelasi
-- **Prediction page**: form input fitur untuk prediksi status depresi dan probabilitas kelas
+The deployment app includes:
+- **EDA page** for data exploration and visual summaries.
+- **Prediction page** for manual input and depression risk prediction.
 
-Entry point aplikasi:
-- `deployment/src/streamlit_app.py`
-
-* * *
-
-## Tech Stack
-
-- Python
-- Jupyter Notebook
-- Streamlit
-- Scikit-learn
-- Pandas
-- NumPy
-- Matplotlib
-- Joblib
-
-* * *
-
-## Getting Started
-
-### 1. Clone repository
-
-```bash
-git clone https://github.com/<username>/p1-ftds-m2-HRifaldi.git
-cd p1-ftds-m2-HRifaldi
-```
-
-### 2. Install dependencies
+Run locally:
 
 ```bash
 pip install -r deployment/requirements.txt
-```
-
-### 3. Run Streamlit app
-
-```bash
 cd deployment/src
 streamlit run streamlit_app.py
-```
-
-### 4. Open notebook
-
-```bash
-jupyter notebook PIM2_Hernanda_Rifaldi_Depression.ipynb
 ```
 
 * * *
@@ -174,9 +142,6 @@ jupyter notebook PIM2_Hernanda_Rifaldi_Depression.ipynb
 
 Hernanda Rifaldi
 
-* * *
-
 ## License
 
-Proyek ini dibuat untuk tujuan pembelajaran dan portofolio data science.
-"# depression-prediction" 
+This repository is for learning and portfolio purposes.
